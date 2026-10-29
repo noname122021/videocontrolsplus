@@ -73,9 +73,9 @@
 4. Найдите **VideoControls+** и нажмите **Установить**.
 
 ### Ручная установка .deb
-Скачайте `com.noname122021.videocontrolsplus_1.0.0_iphoneos-arm.deb` из вкладки [Releases](https://github.com/noname122021/videocontrolsplus/releases) и установите через iFile или терминал:
+Скачайте `com.noname122021.videocontrolsplus_1.0.1_iphoneos-arm.deb` из вкладки [Releases](https://github.com/noname122021/videocontrolsplus/releases) и установите через iFile или терминал:
 ```bash
-dpkg -i com.noname122021.videocontrolsplus_1.0.0_iphoneos-arm.deb
+dpkg -i com.noname122021.videocontrolsplus_1.0.1_iphoneos-arm.deb
 killall -9 YouTube MobileSafari Videos
 ```
 

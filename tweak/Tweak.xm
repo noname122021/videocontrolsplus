@@ -43,6 +43,98 @@ static NSMutableDictionary *sSpeedImages = nil;
 static float sCurrentTargetRate = 1.0f;
 static MPTransportControls *sActiveTransportControls = nil;
 
+// Seek aggregation state
+static double sTargetSeekTime = -1.0;
+static double sCommittedSeekTime = -1.0;
+static NSTimeInterval sLastSeekCommitTime = 0.0;
+static NSTimeInterval sLastSeekTapTime = 0.0;
+static BOOL sSeekTimerScheduled = NO;
+static MPAVController *sPendingSeekPlayer = nil;
+
+@interface VCPSeekDispatcher : NSObject
++ (instancetype)sharedInstance;
+- (void)handleSeekDelta:(double)delta withPlayer:(MPAVController *)player;
+- (void)flushPendingSeek;
+- (void)reset;
+@end
+
+@implementation VCPSeekDispatcher
+
++ (instancetype)sharedInstance {
+    static VCPSeekDispatcher *sInstance = nil;
+    if (!sInstance) {
+        sInstance = [[VCPSeekDispatcher alloc] init];
+    }
+    return sInstance;
+}
+
+- (void)handleSeekDelta:(double)delta withPlayer:(MPAVController *)player {
+    if (!player) return;
+
+    NSTimeInterval now = [NSDate timeIntervalSinceReferenceDate];
+    double dur = [player durationOfCurrentItemIfAvailable];
+
+    // If idle (>1.5s since last tap) or uninitialized, start a new seek series from player's current position
+    if (sTargetSeekTime < 0.0 || (now - sLastSeekTapTime) > 1.5) {
+        sTargetSeekTime = [player currentTime] + delta;
+        sCommittedSeekTime = -1.0;
+    } else {
+        // Tapping in progress: accumulate continuously
+        sTargetSeekTime += delta;
+    }
+
+    // Clamp within valid video boundaries
+    if (sTargetSeekTime < 0.0) sTargetSeekTime = 0.0;
+    if (dur > 0.0 && sTargetSeekTime > dur) sTargetSeekTime = dur;
+
+    sLastSeekTapTime = now;
+    sPendingSeekPlayer = player;
+
+    NSTimeInterval elapsedSinceCommit = now - sLastSeekCommitTime;
+
+    // Minimum hardware turnaround time (~0.5s) between consecutive seeks on Apple A4/A5
+    if (elapsedSinceCommit >= 0.50) {
+        // Safe to execute immediately: no in-flight hardware seek lock
+        [self dispatchSeekNow];
+    } else if (!sSeekTimerScheduled) {
+        // Hardware is still demuxing the previous seek: buffer this tap and fire as soon as turnaround finishes
+        sSeekTimerScheduled = YES;
+        NSTimeInterval remaining = 0.50 - elapsedSinceCommit;
+        if (remaining < 0.01) remaining = 0.01;
+        [self performSelector:@selector(flushPendingSeek) withObject:nil afterDelay:remaining];
+    }
+}
+
+- (void)dispatchSeekNow {
+    if (sPendingSeekPlayer && sTargetSeekTime >= 0.0) {
+        sCommittedSeekTime = sTargetSeekTime;
+        sLastSeekCommitTime = [NSDate timeIntervalSinceReferenceDate];
+        [sPendingSeekPlayer setCurrentTime:sTargetSeekTime];
+    }
+}
+
+- (void)flushPendingSeek {
+    sSeekTimerScheduled = NO;
+    if (sPendingSeekPlayer && sTargetSeekTime >= 0.0) {
+        // If user tapped more while hardware was seeking, commit the newly accumulated target immediately
+        if (fabs(sTargetSeekTime - sCommittedSeekTime) > 0.01) {
+            [self dispatchSeekNow];
+        }
+    }
+}
+
+- (void)reset {
+    [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(flushPendingSeek) object:nil];
+    sSeekTimerScheduled = NO;
+    sTargetSeekTime = -1.0;
+    sCommittedSeekTime = -1.0;
+    sLastSeekCommitTime = 0.0;
+    sLastSeekTapTime = 0.0;
+    sPendingSeekPlayer = nil;
+}
+
+@end
+
 static void loadCustomImagesIfNeeded() {
     if (!sSkipBack10) {
         NSString *base = @"/Library/Application Support/VideoControlsPlus";
@@ -115,12 +207,14 @@ static void updateSpeedButtonUI() {
 
 - (void)_itemDidChange:(id)item {
     sCurrentTargetRate = 1.0f;
+    [[VCPSeekDispatcher sharedInstance] reset];
     %orig;
     updateSpeedButtonUI();
 }
 
 - (void)_itemPlaybackDidEnd:(id)notification {
     sCurrentTargetRate = 1.0f;
+    [[VCPSeekDispatcher sharedInstance] reset];
     %orig;
     updateSpeedButtonUI();
 }
@@ -207,13 +301,35 @@ static void updateSpeedButtonUI() {
     self.player = player;
     [self updateSelectedIndex];
 
-    // Position above parentView (usually MPTransportControls at the bottom)
-    UIView *container = [parentView superview] ?: parentView;
+    // Find the enclosing video overlay (MPFullScreenVideoOverlay, MPPadFullScreenVideoOverlay, or MPSwipableView)
+    // The overlay has the exact orientation and coordinate system of the rotating video player.
+    UIView *container = nil;
+    UIView *v = parentView;
+    while (v) {
+        if ([v isKindOfClass:objc_getClass("MPVideoOverlay")] ||
+            [v isKindOfClass:objc_getClass("MPFullScreenVideoOverlay")] ||
+            [v isKindOfClass:objc_getClass("MPSwipableView")]) {
+            container = v;
+            break;
+        }
+        v = [v superview];
+    }
+    if (!container) {
+        container = [parentView window] ?: [[UIApplication sharedApplication] keyWindow];
+    }
+    if (!container) return;
+
     CGRect pFrame = [parentView convertRect:parentView.bounds toView:container];
     CGFloat hudW = 310.0f;
     CGFloat hudH = 40.0f;
     CGFloat hudX = (container.bounds.size.width - hudW) / 2.0f;
-    CGFloat hudY = pFrame.origin.y - hudH - 8.0f;
+    CGFloat hudY;
+
+    if (pFrame.origin.y < container.bounds.size.height / 2.0f) {
+        hudY = CGRectGetMaxY(pFrame) + 10.0f;
+    } else {
+        hudY = pFrame.origin.y - hudH - 10.0f;
+    }
 
     self.frame = CGRectMake(hudX, hudY, hudW, hudH);
     self.alpha = 0.0f;
@@ -242,15 +358,33 @@ static void updateSpeedButtonUI() {
 
 %hook MPFullScreenVideoOverlay
 
+- (void)setAlpha:(CGFloat)alpha {
+    %orig;
+    if (alpha <= 0.05f) {
+        [[VCPSpeedHUD sharedHUD] dismissAnimated];
+    }
+}
+
 - (unsigned long long)_visiblePartsForTransportControlsWithParts:(unsigned long long)parts {
     unsigned long long orig = %orig(parts);
-    // ONLY show speed button (part 0x80) in landscape orientation!
+    // ONLY show speed button (part 0x80) in landscape orientation on iPhone!
     // In portrait, do not add 0x80 to prevent the HUD bar from overflowing the screen width.
     int orient = [self interfaceOrientation];
     if (UIInterfaceOrientationIsLandscape(orient)) {
         return orig | 0x80;
     }
     return orig & ~0x80;
+}
+
+%end
+
+%hook MPPadFullScreenVideoOverlay
+
+- (void)setAlpha:(CGFloat)alpha {
+    %orig;
+    if (alpha <= 0.05f) {
+        [[VCPSpeedHUD sharedHUD] dismissAnimated];
+    }
 }
 
 %end
@@ -269,16 +403,12 @@ static void updateSpeedButtonUI() {
         sActiveTransportControls = self;
         if (part == 2) { // Prev -> -10s
             MPAVController *p = [self player];
-            double t = [p currentTime] - 10.0;
-            [p setCurrentTime:(t > 0.0 ? t : 0.0)];
+            [[VCPSeekDispatcher sharedInstance] handleSeekDelta:-10.0 withPlayer:p];
             return;
         }
         if (part == 4) { // Next -> +10s
             MPAVController *p = [self player];
-            double t = [p currentTime] + 10.0;
-            double dur = [p durationOfCurrentItemIfAvailable];
-            if (dur > 0.0 && t > dur) t = dur;
-            [p setCurrentTime:t];
+            [[VCPSeekDispatcher sharedInstance] handleSeekDelta:10.0 withPlayer:p];
             return;
         }
         if (part == 0x80) { // Bookmark button in landscape -> Speed Selector HUD
@@ -297,6 +427,20 @@ static void updateSpeedButtonUI() {
     %orig;
 }
 
+- (void)setAlpha:(CGFloat)alpha {
+    %orig;
+    if (alpha <= 0.05f) {
+        [[VCPSpeedHUD sharedHUD] dismissAnimated];
+    }
+}
+
+- (void)setHidden:(BOOL)hidden {
+    %orig;
+    if (hidden) {
+        [[VCPSpeedHUD sharedHUD] dismissAnimated];
+    }
+}
+
 - (UIImage *)buttonImageForPart:(unsigned long long)part {
     if (isVideoTransport(self)) {
         loadCustomImagesIfNeeded();
@@ -309,6 +453,39 @@ static void updateSpeedButtonUI() {
         if (part == 0x80) {
             return speedImageForRate(sCurrentTargetRate);
         }
+    }
+    return %orig;
+}
+
+%end
+
+// Explicitly hook MPPadFullScreenTransportControls on iPad because it overrides buttonImageForPart:
+%hook MPPadFullScreenTransportControls
+
+- (void)setAlpha:(CGFloat)alpha {
+    %orig;
+    if (alpha <= 0.05f) {
+        [[VCPSpeedHUD sharedHUD] dismissAnimated];
+    }
+}
+
+- (void)setHidden:(BOOL)hidden {
+    %orig;
+    if (hidden) {
+        [[VCPSpeedHUD sharedHUD] dismissAnimated];
+    }
+}
+
+- (UIImage *)buttonImageForPart:(unsigned long long)part {
+    loadCustomImagesIfNeeded();
+    if (part == 2 && sSkipBack10) {
+        return sSkipBack10;
+    }
+    if (part == 4 && sSkipForward10) {
+        return sSkipForward10;
+    }
+    if (part == 0x80) {
+        return speedImageForRate(sCurrentTargetRate);
     }
     return %orig;
 }

@@ -73,9 +73,9 @@ It replaces the archaic, useless chapter/track skip buttons with discrete **$\pm
 4. Search for **VideoControls+** and tap **Install**.
 
 ### Manual DEB Installation
-Download `com.noname122021.videocontrolsplus_1.0.0_iphoneos-arm.deb` from the [Releases](https://github.com/noname122021/videocontrolsplus/releases) tab and install via terminal / iFile:
+Download `com.noname122021.videocontrolsplus_1.0.1_iphoneos-arm.deb` from the [Releases](https://github.com/noname122021/videocontrolsplus/releases) tab and install via terminal / iFile:
 ```bash
-dpkg -i com.noname122021.videocontrolsplus_1.0.0_iphoneos-arm.deb
+dpkg -i com.noname122021.videocontrolsplus_1.0.1_iphoneos-arm.deb
 killall -9 YouTube MobileSafari Videos
 ```
 
