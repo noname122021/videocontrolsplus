@@ -1,0 +1,10 @@
+Package: com.noname122021.videocontrolsplus
+Name: VideoControls+
+Depends: mobilesubstrate
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Modern 10s skip and playback speed controls for iOS 4.3 - 6.1.6 video player
+Maintainer: noname122021
+Author: noname122021
+Section: Tweaks
+Tag: purpose::extension
