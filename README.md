@@ -30,15 +30,16 @@
 
 **VideoControls+** revives and modernizes the native media player (`MediaPlayer.framework`), which powers MobileSafari, Classic YouTube, Videos.app, and WebKit video playback on iOS 4.3 through iOS 6.1.6.
 
-It replaces the archaic, useless chapter/track skip buttons with discrete **$\pm$10-second skip** buttons featuring Apple's original circular arrow skeuomorphic styling. Additionally, it repurposes the unused bookmark button in fullscreen landscape into a modern, fast **horizontal playback speed selector HUD** (`0.5x` to `2.0x`).
+It replaces the archaic, useless chapter/track skip buttons with discrete **±10-second skip** buttons featuring Apple's original circular arrow skeuomorphic styling. Additionally, it repurposes the unused bookmark button in fullscreen landscape into a modern, fast **horizontal playback speed selector HUD** (`0.5x` to `2.0x`).
 
 ---
 
 ## Key Features
 
-- **$\pm$10s Skip Buttons (Discrete Step)**
-  - Replaces previous/next track buttons with pixel-perfect circular $\pm$10s arrows (`prev30` geometry).
-  - Cleaned and anti-aliased Retina `@2x` assets matching iOS 6 etched aesthetics.
+- **±10s Skip Buttons (Discrete Step)**
+  - Replaces previous/next track buttons with pixel-perfect circular ±10s arrows (`prev30` geometry).
+  - High-quality Retina `@2x` and native 1x assets matching iOS 6 etched aesthetics.
+  - Fast tap response with intelligent hardware seek turnaround protection.
   - Blocks continuous seeking lockup on long press.
 
 - **Horizontal Speed HUD (`0.5x`, `0.75x`, `1.0x`, `1.25x`, `1.5x`, `2.0x`)**
@@ -49,6 +50,7 @@ It replaces the archaic, useless chapter/track skip buttons with discrete **$\pm
 
 - **Playback Rate Preservation**
   - Hooks `-[AVPlayer setRate:]` so playback speed does not unexpectedly reset to 1.0x when pausing, scrubbing the seek slider, or skipping.
+  - Changing speed while paused keeps the player paused until manually resumed.
   - Automatically resets to standard `1.0x` when a new video or stream begins.
 
 - **Zero Layout Breakage in Portrait**
@@ -64,18 +66,24 @@ It replaces the archaic, useless chapter/track skip buttons with discrete **$\pm
 
 ---
 
+## AI Disclosure
+
+This project was developed with assistance from Large Language Models (AI) for code authoring, debugging, and reverse engineering guidance, then manually inspected, refined, and tested on real jailbroken hardware (iPhone 4 and iPad mini on iOS 6.1.2).
+
+---
+
 ## Installation
 
 ### Via Cydia (Recommended)
 1. Open **Cydia** on your jailbroken device.
-2. Go to **Manage** $\to$ **Sources** $\to$ **Edit** $\to$ **Add**.
+2. Go to **Manage** → **Sources** → **Edit** → **Add**.
 3. Enter repository URL: `https://noname122021.github.io/cydia-repo/`
 4. Search for **VideoControls+** and tap **Install**.
 
 ### Manual DEB Installation
-Download `com.noname122021.videocontrolsplus_1.0.1_iphoneos-arm.deb` from the [Releases](https://github.com/noname122021/videocontrolsplus/releases) tab and install via terminal / iFile:
+Download `com.noname122021.videocontrolsplus_1.0.2_iphoneos-arm.deb` from the [Releases](https://github.com/noname122021/videocontrolsplus/releases) tab and install via terminal / iFile:
 ```bash
-dpkg -i com.noname122021.videocontrolsplus_1.0.1_iphoneos-arm.deb
+dpkg -i com.noname122021.videocontrolsplus_1.0.2_iphoneos-arm.deb
 killall -9 YouTube MobileSafari Videos
 ```
 
