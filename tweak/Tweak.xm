@@ -8,6 +8,7 @@
 - (double)durationOfCurrentItemIfAvailable;
 - (float)rate;
 - (void)setRate:(float)rate;
+- (BOOL)isPlaying;
 @end
 
 @interface MPAVItem : NSObject
@@ -135,17 +136,29 @@ static MPAVController *sPendingSeekPlayer = nil;
 
 @end
 
+static UIImage *loadImageNamed(NSString *name) {
+    NSString *base = @"/Library/Application Support/VideoControlsPlus";
+    CGFloat scale = [[UIScreen mainScreen] scale];
+    if (scale > 1.5f) {
+        NSString *path2x = [base stringByAppendingPathComponent:[NSString stringWithFormat:@"%@@2x.png", name]];
+        UIImage *raw = [UIImage imageWithContentsOfFile:path2x];
+        if (raw) {
+            return [UIImage imageWithCGImage:[raw CGImage] scale:2.0f orientation:UIImageOrientationUp];
+        }
+    }
+    NSString *path1x = [base stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.png", name]];
+    return [UIImage imageWithContentsOfFile:path1x];
+}
+
 static void loadCustomImagesIfNeeded() {
     if (!sSkipBack10) {
-        NSString *base = @"/Library/Application Support/VideoControlsPlus";
-        sSkipBack10 = [[UIImage alloc] initWithContentsOfFile:[base stringByAppendingPathComponent:@"skip_back_10@2x.png"]];
-        sSkipForward10 = [[UIImage alloc] initWithContentsOfFile:[base stringByAppendingPathComponent:@"skip_forward_10@2x.png"]];
+        sSkipBack10 = [loadImageNamed(@"skip_back_10") retain];
+        sSkipForward10 = [loadImageNamed(@"skip_forward_10") retain];
         
         sSpeedImages = [[NSMutableDictionary alloc] init];
         NSArray *rates = @[@"0.5x", @"0.75x", @"1x", @"1.25x", @"1.5x", @"2x"];
         for (NSString *r in rates) {
-            NSString *p = [base stringByAppendingPathComponent:[NSString stringWithFormat:@"speed_%@@2x.png", r]];
-            UIImage *img = [[UIImage alloc] initWithContentsOfFile:p];
+            UIImage *img = loadImageNamed([NSString stringWithFormat:@"speed_%@", r]);
             if (img) [sSpeedImages setObject:img forKey:r];
         }
     }
@@ -177,7 +190,7 @@ static BOOL isVideoTransport(MPTransportControls *self) {
 }
 
 static void updateSpeedButtonUI() {
-    if (sActiveTransportControls) {
+    if (sActiveTransportControls && [sActiveTransportControls window]) {
         UIButton *btn = [sActiveTransportControls buttonForPart:0x80];
         if (btn) {
             UIImage *newImg = speedImageForRate(sCurrentTargetRate);
@@ -273,7 +286,9 @@ static void updateSpeedButtonUI() {
         case 5: rate = 2.0f; break;
     }
     sCurrentTargetRate = rate;
-    [self.player setRate:rate];
+    if ([self.player isPlaying]) {
+        [self.player setRate:rate];
+    }
     updateSpeedButtonUI();
 
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(dismissAnimated) object:nil];
@@ -390,6 +405,20 @@ static void updateSpeedButtonUI() {
 %end
 
 %hook MPTransportControls
+
+- (void)dealloc {
+    if (sActiveTransportControls == self) {
+        sActiveTransportControls = nil;
+    }
+    %orig;
+}
+
+- (void)willMoveToWindow:(UIWindow *)newWindow {
+    %orig;
+    if (!newWindow && sActiveTransportControls == self) {
+        sActiveTransportControls = nil;
+    }
+}
 
 - (void)didMoveToWindow {
     %orig;
