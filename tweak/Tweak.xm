@@ -40,6 +40,17 @@ static UIImage *sSkipBack10 = nil;
 static UIImage *sSkipForward10 = nil;
 static NSMutableDictionary *sSpeedImages = nil;
 
+static BOOL sTweakEnabled = YES;
+
+static void loadPreferences() {
+    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.noname122021.videocontrolsplus.plist"];
+    if (prefs && [prefs objectForKey:@"enabled"]) {
+        sTweakEnabled = [[prefs objectForKey:@"enabled"] boolValue];
+    } else {
+        sTweakEnabled = YES;
+    }
+}
+
 // Global target speed multiplier chosen by the user for the current session
 static float sCurrentTargetRate = 1.0f;
 static MPTransportControls *sActiveTransportControls = nil;
@@ -206,7 +217,7 @@ static void updateSpeedButtonUI() {
 %hook AVPlayer
 
 - (void)setRate:(float)rate {
-    if (rate > 0.0f && sCurrentTargetRate > 0.0f && sCurrentTargetRate != 1.0f) {
+    if (sTweakEnabled && rate > 0.0f && sCurrentTargetRate > 0.0f && sCurrentTargetRate != 1.0f) {
         %orig(sCurrentTargetRate);
     } else {
         %orig(rate);
@@ -382,6 +393,7 @@ static void updateSpeedButtonUI() {
 
 - (unsigned long long)_visiblePartsForTransportControlsWithParts:(unsigned long long)parts {
     unsigned long long orig = %orig(parts);
+    if (!sTweakEnabled) return orig;
     // ONLY show speed button (part 0x80) in landscape orientation on iPhone!
     // In portrait, do not add 0x80 to prevent the HUD bar from overflowing the screen width.
     int orient = [self interfaceOrientation];
@@ -400,6 +412,20 @@ static void updateSpeedButtonUI() {
     if (alpha <= 0.05f) {
         [[VCPSpeedHUD sharedHUD] dismissAnimated];
     }
+}
+
+- (void)setVisibleParts:(unsigned long long)parts animate:(BOOL)animate {
+    if (sTweakEnabled) {
+        parts |= 0x80;
+    }
+    %orig(parts, animate);
+}
+
+- (void)setDesiredParts:(unsigned long long)parts animate:(BOOL)animate {
+    if (sTweakEnabled) {
+        parts |= 0x80;
+    }
+    %orig(parts, animate);
 }
 
 %end
@@ -428,7 +454,7 @@ static void updateSpeedButtonUI() {
 }
 
 - (void)_handleTapForPart:(unsigned long long)part {
-    if (isVideoTransport(self)) {
+    if (sTweakEnabled && isVideoTransport(self)) {
         sActiveTransportControls = self;
         if (part == 2) { // Prev -> -10s
             MPAVController *p = [self player];
@@ -450,10 +476,38 @@ static void updateSpeedButtonUI() {
 }
 
 - (void)_handleHoldForPart:(unsigned long long)part {
-    if (isVideoTransport(self) && (part == 2 || part == 4 || part == 0x80)) {
+    if (sTweakEnabled && isVideoTransport(self) && (part == 2 || part == 4 || part == 0x80)) {
         return; // block continuous scan seeking
     }
     %orig;
+}
+
+- (void)setVisibleParts:(unsigned long long)parts animated:(BOOL)animated {
+    if (sTweakEnabled && isVideoTransport(self)) {
+        parts |= 0x80;
+    }
+    %orig(parts, animated);
+}
+
+- (void)setVisibleParts:(unsigned long long)parts {
+    if (sTweakEnabled && isVideoTransport(self)) {
+        parts |= 0x80;
+    }
+    %orig(parts);
+}
+
+- (void)setDesiredParts:(unsigned long long)parts animated:(BOOL)animated {
+    if (sTweakEnabled && isVideoTransport(self)) {
+        parts |= 0x80;
+    }
+    %orig(parts, animated);
+}
+
+- (void)setDesiredParts:(unsigned long long)parts {
+    if (sTweakEnabled && isVideoTransport(self)) {
+        parts |= 0x80;
+    }
+    %orig(parts);
 }
 
 - (void)setAlpha:(CGFloat)alpha {
@@ -471,7 +525,7 @@ static void updateSpeedButtonUI() {
 }
 
 - (UIImage *)buttonImageForPart:(unsigned long long)part {
-    if (isVideoTransport(self)) {
+    if (sTweakEnabled && isVideoTransport(self)) {
         loadCustomImagesIfNeeded();
         if (part == 2 && sSkipBack10) {
             return sSkipBack10;
@@ -506,17 +560,35 @@ static void updateSpeedButtonUI() {
 }
 
 - (UIImage *)buttonImageForPart:(unsigned long long)part {
-    loadCustomImagesIfNeeded();
-    if (part == 2 && sSkipBack10) {
-        return sSkipBack10;
-    }
-    if (part == 4 && sSkipForward10) {
-        return sSkipForward10;
-    }
-    if (part == 0x80) {
-        return speedImageForRate(sCurrentTargetRate);
+    if (sTweakEnabled) {
+        loadCustomImagesIfNeeded();
+        if (part == 2 && sSkipBack10) {
+            return sSkipBack10;
+        }
+        if (part == 4 && sSkipForward10) {
+            return sSkipForward10;
+        }
+        if (part == 0x80) {
+            return speedImageForRate(sCurrentTargetRate);
+        }
     }
     return %orig;
 }
 
 %end
+
+static void preferencesChangedCallback(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    loadPreferences();
+}
+
+%ctor {
+    loadPreferences();
+    CFNotificationCenterAddObserver(
+        CFNotificationCenterGetDarwinNotifyCenter(),
+        NULL,
+        preferencesChangedCallback,
+        CFSTR("com.noname122021.videocontrolsplus/settingschanged"),
+        NULL,
+        CFNotificationSuspensionBehaviorCoalesce
+    );
+}

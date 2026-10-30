@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="assets/showcase.png" width="760" alt="VideoControls+ Showcase"><br><br>
-  <b>Современная перемотка и регулировка скорости для плеера iOS 4.3 – 6.1.6</b><br>
+  <b>Современная перемотка и регулировка скорости для плеера iOS 6.0 – 6.1.6</b><br>
   <i>Пиксель-перфектные скевоморфные кнопки перемотки на 10 секунд и горизонтальный HUD выбора скорости для старых версий iOS.</i>
 </p>
 
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/iOS-4.3%20--%206.1.6-blue.svg" alt="iOS 4.3 - 6.1.6">
+  <img src="https://img.shields.io/badge/iOS-6.0%20--%206.1.6-blue.svg" alt="iOS 4.3 - 6.1.6">
   <img src="https://img.shields.io/badge/arch-ARMv7%20(32--bit)-success.svg" alt="ARMv7 32-bit">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey.svg" alt="License">
 </p>
@@ -28,7 +28,7 @@
 
 ## Обзор
 
-**VideoControls+** обновляет стандартный системный видеоплеер (`MediaPlayer.framework`), работающий в Safari, Classic YouTube, приложении «Видео» и в любом WebKit-видео на iOS 4.3 – 6.1.6.
+**VideoControls+** обновляет стандартный системный видеоплеер (`MediaPlayer.framework`), работающий в Safari, Classic YouTube, приложении «Видео» и в любом WebKit-видео на iOS 6.0 – 6.1.6.
 
 Твик заменяет устаревшие системные кнопки перехода по главам на дискретную **перемотку на $\pm$10 секунд** с оригинальными круговыми стрелками в классическом стиле Apple. А неиспользуемая в полноэкранном режиме кнопка закладки превращается в **горизонтальный всплывающий HUD выбора скорости** (`0.5x` – `2.0x`).
 
@@ -59,7 +59,7 @@
 
 ## Совместимость
 
-- **Версии iOS:** iOS 4.3, 5.0, 5.1, 5.1.1, 6.0, 6.1, 6.1.2, 6.1.3, 6.1.6.
+- **Версии iOS:** iOS 6.0, 6.1, 6.1.2, 6.1.3, 6.1.6.
 - **Архитектура:** 32-bit ARMv7 (iPhone 3GS, iPhone 4, iPhone 4S, iPhone 5, iPod touch 3G/4G/5G, iPad 1/2/3/4/mini 1).
 - **Substrate:** MobileSubstrate / Cydia Substrate / ElleKit.
 
@@ -92,7 +92,7 @@ killall -9 YouTube MobileSafari Videos
 
 ### Требования
 - Установленный тулчейн [Theos](https://theos.dev/).
-- iOS SDK 4.3+ (с поддержкой архитектуры ARMv7).
+- iOS SDK 6.1+ (с поддержкой архитектуры ARMv7).
 
 ```bash
 git clone https://github.com/noname122021/videocontrolsplus.git

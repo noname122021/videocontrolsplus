@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="assets/showcase.png" width="760" alt="VideoControls+ Showcase"><br><br>
-  <b>Modern Skip & Playback Speed Controls for iOS 4.3 – 6.1.6 Media Player</b><br>
+  <b>Modern Skip & Playback Speed Controls for iOS 6.0 – 6.1.6 Media Player</b><br>
   <i>Pixel-perfect skeuomorphic 10s skip buttons and horizontal speed selector HUD for legacy iOS.</i>
 </p>
 
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/iOS-4.3%20--%206.1.6-blue.svg" alt="iOS 4.3 - 6.1.6">
+  <img src="https://img.shields.io/badge/iOS-6.0%20--%206.1.6-blue.svg" alt="iOS 4.3 - 6.1.6">
   <img src="https://img.shields.io/badge/arch-ARMv7%20(32--bit)-success.svg" alt="ARMv7 32-bit">
   <img src="https://img.shields.io/badge/license-MIT-lightgrey.svg" alt="License">
 </p>
@@ -28,7 +28,7 @@
 
 ## Overview
 
-**VideoControls+** revives and modernizes the native media player (`MediaPlayer.framework`), which powers MobileSafari, Classic YouTube, Videos.app, and WebKit video playback on iOS 4.3 through iOS 6.1.6.
+**VideoControls+** revives and modernizes the native media player (`MediaPlayer.framework`), which powers MobileSafari, Classic YouTube, Videos.app, and WebKit video playback on iOS 6.0 through iOS 6.1.6.
 
 It replaces the archaic, useless chapter/track skip buttons with discrete **±10-second skip** buttons featuring Apple's original circular arrow skeuomorphic styling. Additionally, it repurposes the unused bookmark button in fullscreen landscape into a modern, fast **horizontal playback speed selector HUD** (`0.5x` to `2.0x`).
 
@@ -60,7 +60,7 @@ It replaces the archaic, useless chapter/track skip buttons with discrete **±10
 
 ## Compatibility
 
-- **iOS Versions:** iOS 4.3, 5.0, 5.1, 5.1.1, 6.0, 6.1, 6.1.2, 6.1.3, 6.1.6.
+- **iOS Versions:** iOS 6.0, 6.1, 6.1.2, 6.1.3, 6.1.6.
 - **Architectures:** 32-bit ARMv7 (iPhone 3GS, iPhone 4, iPhone 4S, iPhone 5, iPod touch 3G/4G/5G, iPad 1/2/3/4/mini 1).
 - **Substrate:** MobileSubstrate / Cydia Substrate / ElleKit.
 
@@ -93,7 +93,7 @@ killall -9 YouTube MobileSafari Videos
 
 ### Prerequisites
 - [Theos](https://theos.dev/) development suite.
-- iOS SDK 4.3+ with ARMv7 support.
+- iOS SDK 6.1+ with ARMv7 support.
 
 ```bash
 git clone https://github.com/noname122021/videocontrolsplus.git
