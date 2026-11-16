@@ -8,4 +8,7 @@ VideoControlsPlus_FILES = Tweak.xm
 VideoControlsPlus_FRAMEWORKS = UIKit CoreGraphics QuartzCore
 VideoControlsPlus_LDFLAGS = -lsubstrate
 
+SUBPROJECTS = VideoControlsPlusPrefs vcphelper
+
 include $(THEOS_MAKE_PATH)/tweak.mk
+include $(THEOS_MAKE_PATH)/aggregate.mk

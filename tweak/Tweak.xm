@@ -327,21 +327,31 @@ static void updateSpeedButtonUI() {
     self.player = player;
     [self updateSelectedIndex];
 
-    // Find the enclosing video overlay (MPFullScreenVideoOverlay, MPPadFullScreenVideoOverlay, or MPSwipableView)
-    // The overlay has the exact orientation and coordinate system of the rotating video player.
+    // Find the topmost rotated view controller (MPMoviePlayerViewController or WK26MoviePresenterViewController)
+    // or enclosing overlay that shares the video display coordinates
     UIView *container = nil;
-    UIView *v = parentView;
-    while (v) {
-        if ([v isKindOfClass:objc_getClass("MPVideoOverlay")] ||
-            [v isKindOfClass:objc_getClass("MPFullScreenVideoOverlay")] ||
-            [v isKindOfClass:objc_getClass("MPSwipableView")]) {
-            container = v;
-            break;
+    UIWindow *win = [parentView window] ?: [[UIApplication sharedApplication] keyWindow];
+    if (win && win.rootViewController) {
+        UIViewController *rvc = win.rootViewController;
+        while (rvc.presentedViewController) {
+            rvc = rvc.presentedViewController;
         }
-        v = [v superview];
+        container = rvc.view;
     }
     if (!container) {
-        container = [parentView window] ?: [[UIApplication sharedApplication] keyWindow];
+        UIView *v = parentView;
+        while (v) {
+            if ([v isKindOfClass:objc_getClass("MPVideoOverlay")] ||
+                [v isKindOfClass:objc_getClass("MPFullScreenVideoOverlay")] ||
+                [v isKindOfClass:objc_getClass("MPSwipableView")]) {
+                container = v;
+                break;
+            }
+            v = [v superview];
+        }
+    }
+    if (!container) {
+        container = win;
     }
     if (!container) return;
 
@@ -355,6 +365,12 @@ static void updateSpeedButtonUI() {
         hudY = CGRectGetMaxY(pFrame) + 10.0f;
     } else {
         hudY = pFrame.origin.y - hudH - 10.0f;
+    }
+
+    // Safety bounds check
+    if (hudY < 10.0f) hudY = 10.0f;
+    if (hudY + hudH > container.bounds.size.height - 10.0f) {
+        hudY = container.bounds.size.height - hudH - 10.0f;
     }
 
     self.frame = CGRectMake(hudX, hudY, hudW, hudH);
@@ -456,7 +472,7 @@ static void updateSpeedButtonUI() {
 - (void)_handleTapForPart:(unsigned long long)part {
     if (sTweakEnabled && isVideoTransport(self)) {
         sActiveTransportControls = self;
-        if (part == 2) { // Prev -> -10s
+        if (part == 2 || part == 0x2000000) { // Prev or 30s Rewind -> -10s
             MPAVController *p = [self player];
             [[VCPSeekDispatcher sharedInstance] handleSeekDelta:-10.0 withPlayer:p];
             return;
@@ -476,7 +492,7 @@ static void updateSpeedButtonUI() {
 }
 
 - (void)_handleHoldForPart:(unsigned long long)part {
-    if (sTweakEnabled && isVideoTransport(self) && (part == 2 || part == 4 || part == 0x80)) {
+    if (sTweakEnabled && isVideoTransport(self) && (part == 2 || part == 4 || part == 0x80 || part == 0x2000000)) {
         return; // block continuous scan seeking
     }
     %orig;
@@ -527,7 +543,7 @@ static void updateSpeedButtonUI() {
 - (UIImage *)buttonImageForPart:(unsigned long long)part {
     if (sTweakEnabled && isVideoTransport(self)) {
         loadCustomImagesIfNeeded();
-        if (part == 2 && sSkipBack10) {
+        if ((part == 2 || part == 0x2000000) && sSkipBack10) {
             return sSkipBack10;
         }
         if (part == 4 && sSkipForward10) {
@@ -562,7 +578,7 @@ static void updateSpeedButtonUI() {
 - (UIImage *)buttonImageForPart:(unsigned long long)part {
     if (sTweakEnabled) {
         loadCustomImagesIfNeeded();
-        if (part == 2 && sSkipBack10) {
+        if ((part == 2 || part == 0x2000000) && sSkipBack10) {
             return sSkipBack10;
         }
         if (part == 4 && sSkipForward10) {

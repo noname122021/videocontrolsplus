@@ -1,9 +1,9 @@
 Package: com.noname122021.videocontrolsplus
 Name: VideoControls+
-Version: 1.0.3
+Version: 1.0.4
 Architecture: iphoneos-arm
 Description: Modern skip and speed controls for iOS 6 video player.
 Maintainer: noname122021
 Author: noname122021
 Section: Tweaks
-Depends: mobilesubstrate
+Depends: mobilesubstrate, preferenceloader

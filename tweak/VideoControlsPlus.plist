@@ -1,2 +1,1 @@
-{ Filter = { Bundles = ( "com.apple.MediaPlayer" ); }; }
-
+{ Filter = { Bundles = ( "com.apple.UIKit", "com.apple.MediaPlayer", "eu.heinelt.ifile" ); }; }

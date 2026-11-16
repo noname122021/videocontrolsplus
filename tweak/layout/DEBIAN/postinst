@@ -1,0 +1,4 @@
+#!/bin/sh
+chown root:wheel /usr/libexec/vcphelper 2>/dev/null || true
+chmod 4755 /usr/libexec/vcphelper 2>/dev/null || true
+exit 0
